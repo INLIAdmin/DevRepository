@@ -1,0 +1,2155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Analytics Dashboard</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: var(--bg-secondary);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 20px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 150px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .control-group input,
+        .control-group select {
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            height: 44px;
+            background: white;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 44px;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-healthy {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+
+        .status-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+
+        .status-critical {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: var(--bg-secondary);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .metric-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .metric-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .metric-change {
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .metric-change.positive {
+            color: var(--success-color);
+        }
+
+        .metric-change.negative {
+            color: var(--error-color);
+        }
+
+        .chart-container {
+            background: var(--bg-secondary);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .chart-canvas {
+            height: 400px;
+            position: relative;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 20px;
+            background: var(--bg-primary);
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .tab {
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+        }
+
+        .tab.active {
+            background: var(--bg-secondary);
+            color: var(--primary-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .error-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .error-item {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .error-item:last-child {
+            border-bottom: none;
+        }
+
+        .error-info {
+            flex: 1;
+        }
+
+        .error-code {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .error-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .error-suggestion {
+            font-size: 0.8rem;
+            color: var(--warning-color);
+            font-style: italic;
+        }
+
+        .error-count {
+            background: var(--error-color);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: var(--text-secondary);
+        }
+
+        .loading::after {
+            content: '';
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border-left-color: var(--success-color);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+            border-left-color: var(--warning-color);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+            border-left-color: var(--error-color);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            height: 40px;
+        }
+
+        .logo-reliance {
+            background: #1e3c72;
+            color: white;
+            padding: 6px 12px;
+            font-size: 14px;
+            font-weight: bold;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            border-radius: 3px 0 0 3px;
+        }
+
+        .logo-nippon {
+            background: white;
+            color: #dc3545;
+            padding: 6px 12px;
+            font-size: 14px;
+            font-weight: bold;
+            height: 45px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-radius: 0 3px 3px 0;
+            line-height: 1.1;
+            border: 1px solid #e0e0e0;
+            border-left: none;
+        }
+
+        .logo-nippon-main {
+            font-size: 11px;
+            font-weight: bold;
+            color: #dc3545;
+        }
+
+        .logo-nippon-sub {
+            font-size: 7px;
+            color: #666;
+            margin-top: 1px;
+        }
+
+        .footer {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            margin-top: auto;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1002;
+        }
+
+        #exportModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            width: 420px;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            font-family: 'Segoe UI', sans-serif;
+            position: absolute;
+            cursor: default;
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 16px;
+            cursor: move;
+            user-select: none;
+        }
+
+        .modal-content label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .modal-content input, 
+        .modal-content select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            background-color: #f9fafb;
+            font-size: 14px;
+        }
+
+        .modal-content .btn {
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            height: auto;
+        }
+
+        .modal-content .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .modal-content .btn-secondary {
+            background-color: #e5e7eb;
+            color: #111827;
+        }
+
+        .modal-content .btn:hover {
+            opacity: 0.9;
+            transform: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-group {
+                min-width: auto;
+            }
+
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .metric-card {
+                padding: 20px;
+            }
+
+            .chart-canvas {
+                height: 300px;
+            }
+        }
+		</style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header">
+		<div class="logo">
+			<div class="logo-reliance">RELIANCE</div>
+			<div class="logo-nippon">
+				<div>NIPPON LIFE</div>
+				<div>INSURANCE</div>
+				<div class="logo-nippon-sub">A RELIANCE CAPITAL COMPANY</div>
+			</div>
+		</div>
+		<div>
+            <h1>Payment Analytics Dashboard</h1>
+            <p>Real-time insights and performance monitoring across all payment channels</p>
+        </div>
+		</div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-row">
+                <div class="control-group">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate" value="2024-01-01">
+                </div>
+                <div class="control-group">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate" value="2024-01-31">
+                </div>
+                <div class="control-group">
+                    <label for="channel">Channel</label>
+                    <select id="channel">
+                        <option value="all">All Channels</option>
+                        <option value="rnlic">RNLIC</option>
+                        <option value="suvidha">Suvidha</option>
+                        <option value="upi">UPI</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="refreshData()">
+                    🔄 Refresh Data
+                </button>
+                <button class="btn btn-secondary" onclick="exportData()">
+                    📊 Export CSV
+                </button>
+                <button class="btn btn-secondary" onclick="openExportModal()">
+					📊 Export Transaction Data
+				</button>
+                <button class="btn btn-success" onclick="toggleRealtime()">
+                    <span id="realtimeText">📡 Start Live</span>
+                </button>
+            </div>
+        </div>
+        <div id="exportModal" style="display: none;">
+    <div class="modal-content" id="draggableModal">
+        <div class="modal-header" id="modalHeader">📄 Export Transaction Data</div>
+
+        <label for="modalStartDate">Start Date</label>
+        <input type="date" id="modalStartDate">
+
+        <label for="modalEndDate">End Date</label>
+        <input type="date" id="modalEndDate">
+
+        <label for="modalChannel">Channel</label>
+        <select id="modalChannel" onchange="onChannelChange()">
+            <option value="all">All Channels</option>
+            <option value="rnlic">RNLIC</option>
+            <option value="suvidha">Suvidha</option>
+            <option value="upi">UPI</option>
+        </select>
+
+        <div id="statusSection" style="display:none;">
+            <label for="modalStatus">Status</label>
+            <select id="modalStatus" onchange="onStatusChange()">
+                <option value="all">All</option>
+                <option value="success">Success</option>
+                <option value="failed">Failed</option>
+                <option value="awaiting">Awaiting</option>
+            </select>
+        </div>
+
+        <div id="paymentModeSection" style="display:none;">
+            <label for="modalPaymentMode">Payment Mode</label>
+            <select id="modalPaymentMode">
+                <option value="all">All</option>
+                <option value="UPI">UPI</option>
+                <option value="NetBanking">Net Banking</option>
+                <option value="CreditCard">Credit Card</option>
+                <option value="DebitCard">Debit Card</option>
+                <option value="EMI">EMI</option>
+                <option value="QR">QR Payment</option>
+            </select>
+        </div>
+
+        <div style="text-align: right; margin-top: 10px;">
+            <button class="btn btn-primary" onclick="exportTransactionData()">📤 Export</button>
+            <button class="btn btn-secondary" onclick="closeExportModal()">❌ Cancel</button>
+        </div>
+    </div>
+</div>
+
+        <!-- System Health Alert -->
+        <div id="healthAlert" class="alert alert-success" style="display: none;">
+            <strong>System Status:</strong> <span id="healthStatus">All systems operational</span>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-title">Total Transactions</div>
+                    <div class="metric-icon" style="background: rgba(37, 99, 235, 0.1); color: var(--primary-color);">
+                        💳
+                    </div>
+                </div>
+                <div class="metric-value" id="totalTransactions">-</div>
+                <div class="metric-change positive" id="transactionChange">
+                    ↗️ +0.0% from last period
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-title">Success Rate</div>
+                    <div class="metric-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success-color);">
+                        ✅
+                    </div>
+                </div>
+                <div class="metric-value" id="successRate">-</div>
+                <div class="metric-change positive" id="successRateChange">
+                    ↗️ +0.0% from last period
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-title">Total Amount</div>
+                    <div class="metric-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning-color);">
+                        💰
+                    </div>
+                </div>
+                <div class="metric-value" id="totalAmount">-</div>
+                <div class="metric-change positive" id="amountChange">
+                    ↗️ +0.0% from last period
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-title">Failed Transactions</div>
+                    <div class="metric-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--error-color);">
+                        ❌
+                    </div>
+                </div>
+                <div class="metric-value" id="failedTransactions">-</div>
+                <div class="metric-change negative" id="failedChange">
+                    ↘️ -0.0% from last period
+                </div>
+            </div>
+        </div>
+
+        <!-- Channel Status -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3 class="chart-title">Channel Health Status</h3>
+                <div id="lastUpdated" style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Last updated: Never
+                </div>
+            </div>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div class="status-indicator status-healthy" id="rnlicStatus">
+                    <div class="status-dot"></div>
+                    RNLIC - Healthy (98.5%)
+                </div>
+                <div class="status-indicator status-warning" id="suvidhaStatus">
+                    <div class="status-dot"></div>
+                    Suvidha - Warning (87.2%)
+                </div>
+                <div class="status-indicator status-healthy" id="upiStatus">
+                    <div class="status-dot"></div>
+                    UPI - Healthy (99.1%)
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid-2">
+            <!-- Transaction Trends -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Transaction Trends</h3>
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTrendView('daily')">Daily</button>
+                        <button class="tab" onclick="switchTrendView('hourly')">Hourly</button>
+                    </div>
+                </div>
+                <div class="chart-canvas">
+                    <canvas id="trendsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Success Rate by Channel -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Success Rate by Channel</h3>
+                </div>
+                <div class="chart-canvas">
+                    <canvas id="successRateChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Volume Distribution & Error Analysis -->
+        <div class="grid-2">
+            <!-- Volume Distribution -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Volume Distribution</h3>
+                </div>
+                <div class="chart-canvas">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Errors -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Top Errors & Resolutions</h3>
+                </div>
+                <div class="error-list" id="errorList">
+                    <div class="loading">Loading error data...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hourly Trends -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3 class="chart-title">Peak Hours Analysis</h3>
+            </div>
+            <div class="chart-canvas">
+                <canvas id="hourlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <footer class="footer"> © 2025 Reliance Nippon Life Insurance
+		| Powered by IT Apps </footer>
+
+		<script th:src="@{/assets/js/chart.min.js}"></script>
+		<script th:src="@{/assets/js/date-fns.js}"></script>
+		
+<script>
+//Global variables
+let trendsChart, successRateChart, volumeChart, hourlyChart;
+let realtimeInterval;
+let isRealtimeActive = false;
+let currentData = {};
+let currentTrendView = 'daily';
+
+// API Configuration
+const API_CONFIG = {
+    baseURL: 'https://rservices.indusindnipponlife.com',
+    endpoints: {
+        summary: '/PaymentAnalytics/analytics/api/payment-trends',
+        errors: '/PaymentAnalytics/analytics/error-analysis',
+        performance: '/PaymentAnalytics/analytics/performance-metrics',
+        realtime: '/PaymentAnalytics/analytics/realtime',
+        export: '/PaymentAnalytics/analytics/export',
+		exportRnlic: '/PaymentAnalytics/analytics/OnlinePaymentTransactionData',
+        exportSuvidha: '/PaymentAnalytics/analytics/ThridPartyTransactionData',
+        exportUpi: '/PaymentAnalytics/analytics/UPICollectionTransactionData'
+    },
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'X-API-Version': '1.0'
+    }
+};
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDashboard();
+    refreshData();
+});
+
+function initializeDashboard() {
+    // Set default dates
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    
+    document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+    document.getElementById('endDate').value = today.toISOString().split('T')[0];
+
+    // Initialize charts
+    initializeCharts();
+}
+
+function initializeCharts() {
+    // Trends Chart
+    const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+    trendsChart = new Chart(trendsCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'RNLIC',
+                data: [],
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Suvidha',
+                data: [],
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'UPI',
+                data: [],
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    cornerRadius: 8
+                }
+            }
+        }
+    });
+
+    // Success Rate Chart
+    const successRateCtx = document.getElementById('successRateChart').getContext('2d');
+    successRateChart = new Chart(successRateCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['RNLIC', 'Suvidha', 'UPI'],
+            datasets: [{
+                data: [0, 0, 0],
+                backgroundColor: ['#2563eb', '#10b981', '#f59e0b'],
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+
+    // Volume Chart
+    const volumeCtx = document.getElementById('volumeChart').getContext('2d');
+    volumeChart = new Chart(volumeCtx, {
+        type: 'bar',
+        data: {
+            labels: ['RNLIC', 'Suvidha', 'UPI'],
+            datasets: [{
+                label: 'Transaction Volume',
+                data: [0, 0, 0],
+                backgroundColor: ['#2563eb', '#10b981', '#f59e0b'],
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+
+    // Hourly Chart
+    const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
+    hourlyChart = new Chart(hourlyCtx, {
+        type: 'bar',
+        data: {
+            labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+            datasets: [{
+                label: 'Transactions',
+                data: new Array(24).fill(0),
+                backgroundColor: '#2563eb',
+                borderRadius: 4,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+// API Helper Functions
+async function makeAPIRequest(endpoint, options = {}) {
+    const url = `${API_CONFIG.baseURL}${endpoint}`;
+    const config = {
+        method: 'GET',
+        headers: API_CONFIG.headers,
+        ...options
+    };
+
+    try {
+        const response = await fetch(url, config);
+        
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status} - ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('API Request Error:', error);
+        throw error;
+    }
+}
+
+// Fixed API Functions to match actual response format
+async function fetchSummaryData(startDate, endDate) {
+    const channel = document.getElementById('channel').value;
+    console.log("Channel Selected :: ",channel)
+    const params = new URLSearchParams({
+        startDate,
+        endDate,
+        ...(channel !== 'all' && { channel })
+    });
+
+    try {
+        const data = await makeAPIRequest(`${API_CONFIG.endpoints.summary}?${params}`);
+        return data;
+    } catch (error) {
+        console.error('Error fetching summary data:', error);
+        showError('Failed to fetch summary data');
+        throw error;
+    }
+}
+
+async function fetchErrorData(startDate, endDate) {
+    const channel = document.getElementById('channel').value;
+    const params = new URLSearchParams({
+        startDate,
+        endDate,
+        ...(channel !== 'all' && { channel }),
+        limit: 10
+    });
+
+    try {
+        const data = await makeAPIRequest(`${API_CONFIG.endpoints.errors}?${params}`);
+        return data;
+    } catch (error) {
+        console.error('Error fetching error data:', error);
+        showError('Failed to fetch error data');
+        throw error;
+    }
+}
+
+async function fetchPerformanceData(startDate, endDate) {
+    const channel = document.getElementById('channel').value;
+    const params = new URLSearchParams({
+        startDate,
+        endDate,
+        ...(channel !== 'all' && { channel }),
+        granularity: currentTrendView
+    });
+
+    try {
+        const data = await makeAPIRequest(`${API_CONFIG.endpoints.performance}?${params}`);
+        return data;
+    } catch (error) {
+        console.error('Error fetching performance data:', error);
+        showError('Failed to fetch performance data');
+        throw error;
+    }
+}
+
+async function fetchRealtimeData() {
+    try {
+        const data = await makeAPIRequest(API_CONFIG.endpoints.realtime);
+        return data;
+    } catch (error) {
+        console.error('Error fetching realtime data:', error);
+        showError('Failed to fetch realtime data');
+        throw error;
+    }
+}
+
+// Main refresh function
+async function refreshData() {
+    try {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        // Validate dates
+        if (!startDate || !endDate) {
+            showError('Please select both start and end dates');
+            return;
+        }
+
+        if (new Date(startDate) > new Date(endDate)) {
+            showError('Start date must be before end date');
+            return;
+        }
+
+        // Show loading state
+        showLoading();
+
+        // Fetch data from API
+        const [summaryData, errorData, performanceData, realtimeData] = await Promise.all([
+            fetchSummaryData(startDate, endDate),
+            fetchErrorData(startDate, endDate),
+            fetchPerformanceData(startDate, endDate),
+            fetchRealtimeData()
+        ]);
+
+        // Update UI with corrected functions
+        processTransactionMetrics(summaryData, realtimeData);
+        updateCharts(summaryData, performanceData);
+        updateErrorList(errorData);
+        updateChannelStatus(realtimeData);
+        updateLastUpdated();
+
+        // Store current data
+        currentData = {
+            summary: summaryData,
+            errors: errorData,
+            performance: performanceData,
+            realtime: realtimeData
+        };
+
+        hideLoading();
+        showSuccess('Data refreshed successfully');
+    } catch (error) {
+        console.error('Error refreshing data:', error);
+        hideLoading();
+        showError('Failed to refresh data. Please try again.');
+    }
+}
+
+/**
+ * Fixed function to process API response data and update transaction metrics
+ */
+ function processTransactionMetrics(summaryData, realtimeData) {
+	    const startDate = document.getElementById('startDate').value;
+	    const endDate = document.getElementById('endDate').value;
+	    const todayStr = new Date().toISOString().split('T')[0];
+
+	    const isTodaySelected = startDate === todayStr && endDate === todayStr;
+
+	    if (isTodaySelected && realtimeData && realtimeData.currentDayMetrics && realtimeData.currentDayMetrics.overallStats) {
+	        const currentDayMetrics = realtimeData.currentDayMetrics.overallStats;
+
+	        updateMetricsUI({
+	            totalTransactions: currentDayMetrics.totalTransactions || 0,
+	            successfulTransactions: currentDayMetrics.successfulTransactions || 0,
+	            totalAmount: currentDayMetrics.totalAmount || 0,
+	            successfulAmount: currentDayMetrics.successfulAmount || 0,
+	            failedTransactions: currentDayMetrics.failedTransactions || 0,
+	            successRate: currentDayMetrics.overallSuccessRate || 0
+	        });
+
+	        const previousDayMetrics = calculatePreviousDayMetrics(summaryData);
+	        updateChangeIndicators(currentDayMetrics, previousDayMetrics);
+	    } else {
+	        const calculatedMetrics = calculateMetricsFromDateRange(summaryData);
+	        updateMetricsUI(calculatedMetrics);
+
+	        const previousPeriodMetrics = calculatePreviousPeriodMetrics(summaryData);
+	        updateChangeIndicators(calculatedMetrics, previousPeriodMetrics);
+	    }
+	}
+
+
+/**
+ * Calculate previous day metrics from trends data
+ */
+function calculatePreviousDayMetrics(summaryData) {
+    const allTrends = [
+        ...(summaryData.rnlicTrends || []),
+        ...(summaryData.upiTrends || []),
+        ...(summaryData.suvidhaTrends || [])
+    ];
+    
+    if (allTrends.length < 2) {
+        return null; // Not enough data for comparison
+    }
+    
+    // Get the second most recent day for comparison
+    const sortedTrends = allTrends.sort((a, b) => new Date(b.TRANSACTIONDATE) - new Date(a.TRANSACTIONDATE));
+    const previousDay = sortedTrends.slice(1); // Skip the most recent day
+    
+    return {
+        totalTransactions: previousDay.reduce((sum, trend) => sum + (trend.TOTALTRANSACTIONS || 0), 0),
+        successfulTransactions: previousDay.reduce((sum, trend) => sum + (trend.SUCCESSFULTRANSACTIONS || 0), 0),
+        totalAmount: previousDay.reduce((sum, trend) => sum + (trend.TOTALAMOUNT || 0), 0),
+        successfulAmount: previousDay.reduce((sum, trend) => sum + (trend.SUCCESSFULAMOUNT || 0), 0)
+    };
+}
+
+/**
+ * Update metric values in the UI
+ */
+function updateMetricsUI(metrics) {
+    const elements = {
+        totalTransactions: document.getElementById('totalTransactions'),
+        successRate: document.getElementById('successRate'),
+        totalAmount: document.getElementById('totalAmount'),
+        failedTransactions: document.getElementById('failedTransactions')
+    };
+    
+    if (elements.totalTransactions) {
+        elements.totalTransactions.textContent = formatNumber(metrics.totalTransactions);
+    }
+    
+    if (elements.successRate) {
+        elements.successRate.textContent = `${metrics.successRate.toFixed(1)}%`;
+    }
+    
+    if (elements.totalAmount) {
+        elements.totalAmount.textContent = formatCurrency(metrics.totalAmount);
+    }
+    
+    if (elements.failedTransactions) {
+        elements.failedTransactions.textContent = formatNumber(metrics.failedTransactions);
+    }
+}
+
+/**
+ * Update change indicators with real previous period data
+ */
+function updateChangeIndicators(currentMetrics, previousMetrics) {
+    if (!previousMetrics) {
+        // Hide change indicators if no previous data
+        const changeElements = ['transactionChange', 'successRateChange', 'amountChange', 'failedChange'];
+        changeElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = 'No previous data';
+                element.className = 'metric-change neutral';
+            }
+        });
+        return;
+    }
+    
+    const currentSuccessRate = currentMetrics.overallSuccessRate;
+    const previousSuccessRate = previousMetrics.totalTransactions > 0 ? 
+        (previousMetrics.successfulTransactions / previousMetrics.totalTransactions) * 100 : 0;
+    
+    const previousFailedTransactions = previousMetrics.totalTransactions - previousMetrics.successfulTransactions;
+    
+    updateMetricChange('transactionChange', currentMetrics.totalTransactions, previousMetrics.totalTransactions);
+    updateMetricChange('successRateChange', currentSuccessRate, previousSuccessRate, true);
+    updateMetricChange('amountChange', currentMetrics.totalAmount, previousMetrics.totalAmount);
+    updateMetricChange('failedChange', currentMetrics.failedTransactions, previousFailedTransactions, false, true);
+}
+
+/**
+ * Update a single metric change indicator
+ */
+function updateMetricChange(elementId, current, previous, isPercentage = false, isInverse = false) {
+    const element = document.getElementById(elementId);
+    if (!element || !previous) return;
+
+    const change = ((current - previous) / previous) * 100;
+    const isPositive = isInverse ? change < 0 : change > 0;
+    const arrow = isPositive ? '↗️' : '↘️';
+    const className = isPositive ? 'positive' : 'negative';
+    
+    element.textContent = `${arrow} ${change >= 0 ? '+' : ''}${change.toFixed(1)}% from last period`;
+    element.className = `metric-change ${className}`;
+}
+
+/**
+ * Fixed function to update charts with actual API response format
+ */
+function updateCharts(summaryData, performanceData) {
+    // Update trends chart with actual data format
+    updateTrendsChart(summaryData);
+    
+    // Update success rate chart with performance data
+    updateSuccessRateChart(performanceData);
+    
+    // Update volume chart with performance data
+    updateVolumeChart(performanceData);
+    
+    // Update hourly chart with peak hour analysis
+    updateHourlyChart(performanceData);
+}
+
+function updateTrendsChart(summaryData) {
+    const rnlicTrends = summaryData.rnlicTrends || [];
+    const upiTrends = summaryData.upiTrends || [];
+    const suvidhaTrends = summaryData.suvidhaTrends || [];
+    
+    // Create labels from transaction dates (use RNLIC as primary source)
+    const labels = rnlicTrends.map(trend => {
+        const date = new Date(trend.TRANSACTIONDATE);
+        return date.toLocaleDateString();
+    });
+    
+    // Create date-based maps for proper alignment
+    const dateMap = {};
+    
+    // Process RNLIC trends
+    rnlicTrends.forEach(trend => {
+        const date = new Date(trend.TRANSACTIONDATE).toLocaleDateString();
+        dateMap[date] = {
+            rnlic: trend.TOTALTRANSACTIONS || 0,
+            upi: 0,
+            suvidha: 0
+        };
+    });
+    
+    // Add UPI trends
+    upiTrends.forEach(trend => {
+        const date = new Date(trend.TRANSACTIONDATE).toLocaleDateString();
+        if (dateMap[date]) {
+            dateMap[date].upi = trend.TOTALTRANSACTIONS || 0;
+        }
+    });
+    
+    // Add Suvidha trends
+    suvidhaTrends.forEach(trend => {
+        const date = new Date(trend.TRANSACTIONDATE).toLocaleDateString();
+        if (dateMap[date]) {
+            dateMap[date].suvidha = trend.TOTALTRANSACTIONS || 0;
+        }
+    });
+    
+    // Extract data arrays
+    const rnlicData = labels.map(date => dateMap[date]?.rnlic || 0);
+    const upiData = labels.map(date => dateMap[date]?.upi || 0);
+    const suvidhaData = labels.map(date => dateMap[date]?.suvidha || 0);
+    
+    trendsChart.data.labels = labels;
+    trendsChart.data.datasets[0].data = rnlicData;
+    trendsChart.data.datasets[1].data = suvidhaData;
+    trendsChart.data.datasets[2].data = upiData;
+    trendsChart.update();
+}
+
+function updateSuccessRateChart(performanceData) {
+    if (performanceData.channelComparison && performanceData.channelComparison.channels) {
+        const channels = performanceData.channelComparison.channels;
+        
+        // Initialize with default values
+        let rnlicSuccessRate = 0;
+        let suvidhaSuccessRate = 0;
+        let upiSuccessRate = 0;
+        
+        // Find data for each channel
+        channels.forEach(channel => {
+            const successRate = channel.data.TOTALTRANSACTIONS > 0 ? 
+                (channel.data.SUCCESSFULTRANSACTIONS / channel.data.TOTALTRANSACTIONS) * 100 : 0;
+                
+            switch (channel.name) {
+                case 'RNLIC':
+                    rnlicSuccessRate = successRate;
+                    break;
+                case 'Suvidha':
+                    suvidhaSuccessRate = successRate;
+                    break;
+                case 'UPI':
+                    upiSuccessRate = successRate;
+                    break;
+            }
+        });
+        
+        successRateChart.data.datasets[0].data = [
+            rnlicSuccessRate,
+            suvidhaSuccessRate,
+            upiSuccessRate
+        ];
+        successRateChart.update();
+    }
+}
+
+function updateVolumeChart(performanceData) {
+    if (performanceData.volumeDistribution) {
+        const volume = performanceData.volumeDistribution;
+        
+        volumeChart.data.datasets[0].data = [
+            volume.rnlicVolume || 0,
+            volume.suvidhaVolume || 0,
+            volume.upiVolume || 0
+        ];
+        volumeChart.update();
+    }
+}
+
+function updateHourlyChart(performanceData) {
+    if (performanceData.peakHourAnalysis) {
+        const hourlyData = new Array(24).fill(0);
+        
+        // Fill peak hours data
+        if (performanceData.peakHourAnalysis.peakHours) {
+            performanceData.peakHourAnalysis.peakHours.forEach(peak => {
+                if (peak.hour >= 0 && peak.hour < 24) {
+                    hourlyData[peak.hour] = peak.transactions;
+                }
+            });
+        }
+        
+        // Fill low hours data
+        if (performanceData.peakHourAnalysis.lowHours) {
+            performanceData.peakHourAnalysis.lowHours.forEach(low => {
+                if (low.hour >= 0 && low.hour < 24) {
+                    hourlyData[low.hour] = low.transactions;
+                }
+            });
+        }
+        
+        hourlyChart.data.datasets[0].data = hourlyData;
+        hourlyChart.update();
+    }
+}
+
+/**
+ * Fixed function to update error list with actual API response format
+ */
+function updateErrorList(errorData) {
+    const errorList = document.getElementById('errorList');
+    
+    if (!errorData.topErrors || errorData.topErrors.length === 0) {
+        errorList.innerHTML = '<div class="loading">No error data available</div>';
+        return;
+    }
+
+    const errorHTML = errorData.topErrors.map(error => `
+        <div class="error-item">
+            <div class="error-info">
+                <div class="error-code">${error.ERROR_CODE}</div>
+                <div class="error-description">${error.ERROR_MESSAGE}</div>
+                <div class="error-suggestion">${error.resolutionSuggestion || 'Contact technical support for resolution'}</div>
+            </div>
+            <div class="error-count">${error.ERRORCOUNT}</div>
+        </div>
+    `).join('');
+
+    errorList.innerHTML = errorHTML;
+}
+
+/**
+ * Fixed function to update channel status with actual API response format
+ */
+function updateChannelStatus(realtimeData) {
+    if (!realtimeData.systemHealth) return;
+
+    const health = realtimeData.systemHealth;
+    
+    // Update RNLIC status
+    const rnlicStatusElement = document.getElementById('rnlicStatus');
+    if (rnlicStatusElement && health.rnlicHealth) {
+        const status = health.rnlicHealth;
+        const statusClass = getStatusClass(status.successRate);
+        
+        rnlicStatusElement.className = `status-indicator ${statusClass}`;
+        rnlicStatusElement.innerHTML = `
+            <div class="status-dot"></div>
+            RNLIC - ${status.status} (${status.successRate.toFixed(1)}%)
+        `;
+    }
+    
+    // Update Suvidha status
+    const suvidhaStatusElement = document.getElementById('suvidhaStatus');
+    if (suvidhaStatusElement && health.suvidhaHealth) {
+        const status = health.suvidhaHealth;
+        const statusClass = getStatusClass(status.successRate);
+        
+        suvidhaStatusElement.className = `status-indicator ${statusClass}`;
+        suvidhaStatusElement.innerHTML = `
+            <div class="status-dot"></div>
+            SUVIDHA - ${status.status} (${status.successRate.toFixed(1)}%)
+        `;
+    }
+    
+    // Update UPI status
+    const upiStatusElement = document.getElementById('upiStatus');
+    if (upiStatusElement && health.upiHealth) {
+        const status = health.upiHealth;
+        const statusClass = getStatusClass(status.successRate);
+        
+        upiStatusElement.className = `status-indicator ${statusClass}`;
+        upiStatusElement.innerHTML = `
+            <div class="status-dot"></div>
+            UPI - ${status.status} (${status.successRate.toFixed(1)}%)
+        `;
+    }
+}
+
+function getStatusClass(successRate) {
+    if (successRate >= 90) return 'status-healthy';
+    if (successRate >= 70) return 'status-warning';
+    return 'status-critical';
+}
+
+function updateLastUpdated() {
+    const now = new Date();
+    const lastUpdatedElement = document.getElementById('lastUpdated');
+    if (lastUpdatedElement) {
+        lastUpdatedElement.textContent = `Last updated: ${now.toLocaleString()}`;
+    }
+}
+
+// Control Functions
+function switchTrendView(view) {
+    currentTrendView = view;
+    
+    // Update tab styling
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Refresh data with new view
+    refreshData();
+}
+
+function toggleRealtime() {
+    const button = document.getElementById('realtimeText');
+    
+    if (isRealtimeActive) {
+        clearInterval(realtimeInterval);
+        isRealtimeActive = false;
+        button.textContent = '📡 Start Live';
+        button.parentElement.classList.remove('btn-success');
+        button.parentElement.classList.add('btn-primary');
+    } else {
+        realtimeInterval = setInterval(refreshData, 5000);
+        isRealtimeActive = true;
+        button.textContent = '⏸️ Stop Live';
+        button.parentElement.classList.remove('btn-primary');
+        button.parentElement.classList.add('btn-success');
+    }
+}
+
+async function exportData() {
+    try {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const channel = document.getElementById('channel').value;
+        
+        const params = new URLSearchParams({
+            startDate,
+            endDate,
+            format: 'csv',
+            ...(channel !== 'all' && { channel })
+        });
+
+        const response = await fetch(`${API_CONFIG.baseURL}${API_CONFIG.endpoints.export}?${params}`, {
+            method: 'GET',
+            headers: API_CONFIG.headers
+        });
+
+        if (!response.ok) {
+            throw new Error('Export failed');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `payment_analytics_${startDate}_${endDate}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        showSuccess('Data exported successfully');
+    } catch (error) {
+        console.error('Export error:', error);
+        showError('Failed to export data');
+    }
+}
+
+// Utility Functions
+function formatNumber(num) {
+    if (num >= 1000000000) {
+        return (num / 1000000000).toFixed(1) + 'B';
+    } else if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toLocaleString();
+}
+
+function formatCurrency(amount) {
+    const formatted = formatNumber(amount);
+    return `₹${formatted}`;
+}
+
+function getStatusText(statusClass) {
+    switch (statusClass) {
+        case 'status-healthy': return 'Healthy';
+        case 'status-warning': return 'Warning';
+        case 'status-critical': return 'Critical';
+        default: return 'Unknown';
+    }
+}
+
+function showLoading() {
+    const loadingElements = document.querySelectorAll('.loading');
+    loadingElements.forEach(el => el.style.display = 'flex');
+}
+
+function hideLoading() {
+    const loadingElements = document.querySelectorAll('.loading');
+    loadingElements.forEach(el => el.style.display = 'none');
+}
+
+function showSuccess(message) {
+    showAlert(message, 'success');
+}
+
+function showError(message) {
+    showAlert(message, 'error');
+}
+
+function showAlert(message, type) {
+    const alertId = `alert-${Date.now()}`;
+    const alertHTML = `
+        <div id="${alertId}" class="alert alert-${type}" style="position: fixed; top: 20px; right: 20px; z-index: 1000; max-width: 400px;">
+            ${message}
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', alertHTML);
+    
+    setTimeout(() => {
+        const alertElement = document.getElementById(alertId);
+        if (alertElement) {
+            alertElement.remove();
+        }
+    }, 5000);
+}
+
+// Event Listeners
+document.getElementById('startDate')?.addEventListener('change', refreshData);
+document.getElementById('endDate')?.addEventListener('change', refreshData);
+document.getElementById('channel')?.addEventListener('change', refreshData);
+
+// Error handling for unhandled promise rejections
+window.addEventListener('unhandledrejection', function(event) {
+    console.error('Unhandled promise rejection:', event.reason);
+    showError('An unexpected error occurred. Please try again.');
+});
+
+/**
+ * Calculate metrics from the filtered date range data
+ */
+function calculateMetricsFromDateRange(summaryData) {
+    if (!summaryData) {
+        return {
+            totalTransactions: 0,
+            successfulTransactions: 0,
+            totalAmount: 0,
+            successfulAmount: 0,
+            failedTransactions: 0,
+            successRate: 0
+        };
+    }
+
+    const allTrends = [
+        ...(summaryData.rnlicTrends || []),
+        ...(summaryData.upiTrends || []),
+        ...(summaryData.suvidhaTrends || [])
+    ];
+    
+    // Calculate totals from all trends data
+    const totalTransactions = allTrends.reduce((sum, trend) => sum + (trend.TOTALTRANSACTIONS || 0), 0);
+    const successfulTransactions = allTrends.reduce((sum, trend) => sum + (trend.SUCCESSFULTRANSACTIONS || 0), 0);
+    const totalAmount = allTrends.reduce((sum, trend) => sum + (trend.TOTALAMOUNT || 0), 0);
+    const successfulAmount = allTrends.reduce((sum, trend) => sum + (trend.SUCCESSFULAMOUNT || 0), 0);
+    const failedTransactions = totalTransactions - successfulTransactions;
+    const successRate = totalTransactions > 0 ? (successfulTransactions / totalTransactions) * 100 : 0;
+    
+    return {
+        totalTransactions,
+        successfulTransactions,
+        totalAmount,
+        successfulAmount,
+        failedTransactions,
+        successRate
+    };
+}
+
+/**
+ * Calculate previous day metrics from trends data for day-over-day comparison
+ */
+function calculatePreviousDayMetrics(summaryData) {
+    if (!summaryData) {
+        return null;
+    }
+
+    const allTrends = [
+        ...(summaryData.rnlicTrends || []),
+        ...(summaryData.upiTrends || []),
+        ...(summaryData.suvidhaTrends || [])
+    ];
+    
+    if (allTrends.length < 2) {
+        return null; // Not enough data for comparison
+    }
+    
+    // Sort trends by date (most recent first)
+    const sortedTrends = allTrends.sort((a, b) => new Date(b.TRANSACTIONDATE) - new Date(a.TRANSACTIONDATE));
+    
+    // Get unique dates
+    const uniqueDates = [...new Set(sortedTrends.map(trend => 
+        new Date(trend.TRANSACTIONDATE).toDateString()
+    ))];
+    
+    if (uniqueDates.length < 2) {
+        return null; // Need at least 2 different dates
+    }
+    
+    // Get the second most recent date for comparison
+    const previousDate = uniqueDates[1];
+    const previousDayTrends = sortedTrends.filter(trend => 
+        new Date(trend.TRANSACTIONDATE).toDateString() === previousDate
+    );
+    
+    // Calculate metrics for previous day
+    const previousTotalTransactions = previousDayTrends.reduce((sum, trend) => sum + (trend.TOTALTRANSACTIONS || 0), 0);
+    const previousSuccessfulTransactions = previousDayTrends.reduce((sum, trend) => sum + (trend.SUCCESSFULTRANSACTIONS || 0), 0);
+    const previousTotalAmount = previousDayTrends.reduce((sum, trend) => sum + (trend.TOTALAMOUNT || 0), 0);
+    const previousSuccessfulAmount = previousDayTrends.reduce((sum, trend) => sum + (trend.SUCCESSFULAMOUNT || 0), 0);
+    const previousFailedTransactions = previousTotalTransactions - previousSuccessfulTransactions;
+    const previousSuccessRate = previousTotalTransactions > 0 ? (previousSuccessfulTransactions / previousTotalTransactions) * 100 : 0;
+    
+    return {
+        totalTransactions: previousTotalTransactions,
+        successfulTransactions: previousSuccessfulTransactions,
+        totalAmount: previousTotalAmount,
+        successfulAmount: previousSuccessfulAmount,
+        failedTransactions: previousFailedTransactions,
+        successRate: previousSuccessRate
+    };
+}
+
+/**
+ * Calculate previous period metrics for change comparison
+ * This splits the data into two halves for comparison
+ */
+function calculatePreviousPeriodMetrics(summaryData) {
+    if (!summaryData) {
+        return null;
+    }
+
+    const allTrends = [
+        ...(summaryData.rnlicTrends || []),
+        ...(summaryData.upiTrends || []),
+        ...(summaryData.suvidhaTrends || [])
+    ];
+    
+    if (allTrends.length < 2) {
+        return null; // Not enough data for comparison
+    }
+    
+    // Sort trends by date
+    const sortedTrends = allTrends.sort((a, b) => new Date(a.TRANSACTIONDATE) - new Date(b.TRANSACTIONDATE));
+    
+    // Split data into two halves for comparison
+    const midPoint = Math.floor(sortedTrends.length / 2);
+    const firstHalf = sortedTrends.slice(0, midPoint);
+    const secondHalf = sortedTrends.slice(midPoint);
+    
+    // Calculate metrics for first half (previous period)
+    const previousTotalTransactions = firstHalf.reduce((sum, trend) => sum + (trend.TOTALTRANSACTIONS || 0), 0);
+    const previousSuccessfulTransactions = firstHalf.reduce((sum, trend) => sum + (trend.SUCCESSFULTRANSACTIONS || 0), 0);
+    const previousTotalAmount = firstHalf.reduce((sum, trend) => sum + (trend.TOTALAMOUNT || 0), 0);
+    const previousSuccessfulAmount = firstHalf.reduce((sum, trend) => sum + (trend.SUCCESSFULAMOUNT || 0), 0);
+    const previousFailedTransactions = previousTotalTransactions - previousSuccessfulTransactions;
+    const previousSuccessRate = previousTotalTransactions > 0 ? (previousSuccessfulTransactions / previousTotalTransactions) * 100 : 0;
+    
+    // Calculate metrics for second half (current period)
+    const currentTotalTransactions = secondHalf.reduce((sum, trend) => sum + (trend.TOTALTRANSACTIONS || 0), 0);
+    const currentSuccessfulTransactions = secondHalf.reduce((sum, trend) => sum + (trend.SUCCESSFULTRANSACTIONS || 0), 0);
+    const currentTotalAmount = secondHalf.reduce((sum, trend) => sum + (trend.TOTALAMOUNT || 0), 0);
+    const currentSuccessfulAmount = secondHalf.reduce((sum, trend) => sum + (trend.SUCCESSFULAMOUNT || 0), 0);
+    const currentFailedTransactions = currentTotalTransactions - currentSuccessfulTransactions;
+    const currentSuccessRate = currentTotalTransactions > 0 ? (currentSuccessfulTransactions / currentTotalTransactions) * 100 : 0;
+    
+    return {
+        previous: {
+            totalTransactions: previousTotalTransactions,
+            successfulTransactions: previousSuccessfulTransactions,
+            totalAmount: previousTotalAmount,
+            successfulAmount: previousSuccessfulAmount,
+            failedTransactions: previousFailedTransactions,
+            successRate: previousSuccessRate
+        },
+        current: {
+            totalTransactions: currentTotalTransactions,
+            successfulTransactions: currentSuccessfulTransactions,
+            totalAmount: currentTotalAmount,
+            successfulAmount: currentSuccessfulAmount,
+            failedTransactions: currentFailedTransactions,
+            successRate: currentSuccessRate
+        }
+    };
+}
+
+/**
+ * Update change indicators with previous period comparison
+ */
+function updateChangeIndicators(currentMetrics, previousMetrics) {
+    const changeElements = ['transactionChange', 'successRateChange', 'amountChange', 'failedChange'];
+    
+    if (!previousMetrics) {
+        // Hide change indicators if no previous data
+        changeElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = 'No comparison data';
+                element.className = 'metric-change neutral';
+            }
+        });
+        return;
+    }
+    
+    // Handle different data structures
+    let currentData, previousData;
+    
+    if (previousMetrics.previous && previousMetrics.current) {
+        // Period comparison structure
+        currentData = currentMetrics;
+        previousData = previousMetrics.previous;
+    } else {
+        // Day-over-day comparison structure
+        currentData = currentMetrics;
+        previousData = previousMetrics;
+    }
+    
+    // Get success rates
+    const currentSuccessRate = currentData.overallSuccessRate || currentData.successRate || 0;
+    const previousSuccessRate = previousData.overallSuccessRate || previousData.successRate || 0;
+    
+    // Get failed transactions
+    const currentFailedTransactions = currentData.failedTransactions || 0;
+    const previousFailedTransactions = previousData.failedTransactions || 0;
+    
+    updateMetricChange('transactionChange', currentData.totalTransactions || 0, previousData.totalTransactions || 0);
+    updateMetricChange('successRateChange', currentSuccessRate, previousSuccessRate, true);
+    updateMetricChange('amountChange', currentData.totalAmount || 0, previousData.totalAmount || 0);
+    updateMetricChange('failedChange', currentFailedTransactions, previousFailedTransactions, false, true);
+}
+
+/**
+ * Update metric values in the UI
+ */
+function updateMetricsUI(metrics) {
+    const elements = {
+        totalTransactions: document.getElementById('totalTransactions'),
+        successRate: document.getElementById('successRate'),
+        totalAmount: document.getElementById('totalAmount'),
+        failedTransactions: document.getElementById('failedTransactions')
+    };
+    
+    if (elements.totalTransactions) {
+        elements.totalTransactions.textContent = formatNumber(metrics.totalTransactions || 0);
+    }
+    
+    if (elements.successRate) {
+        elements.successRate.textContent = `${(metrics.successRate || 0).toFixed(1)}%`;
+    }
+    
+    if (elements.totalAmount) {
+        elements.totalAmount.textContent = formatCurrency(metrics.totalAmount || 0);
+    }
+    
+    if (elements.failedTransactions) {
+        elements.failedTransactions.textContent = formatNumber(metrics.failedTransactions || 0);
+    }
+}
+
+/**
+ * Update a single metric change indicator
+ */
+function updateMetricChange(elementId, current, previous, isPercentage = false, isInverse = false) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    if (!previous || previous === 0) {
+        element.textContent = 'No comparison data';
+        element.className = 'metric-change neutral';
+        return;
+    }
+
+    const change = ((current - previous) / previous) * 100;
+    const isPositive = isInverse ? change < 0 : change > 0;
+    const arrow = isPositive ? '↗️' : '↘️';
+    const className = isPositive ? 'positive' : 'negative';
+    
+    element.textContent = `${arrow} ${change >= 0 ? '+' : ''}${change.toFixed(1)}% from previous period`;
+    element.className = `metric-change ${className}`;
+}
+
+// Utility functions (ensure these are available)
+function formatNumber(num) {
+    if (typeof num !== 'number') return '0';
+    
+    if (num >= 1000000000) {
+        return (num / 1000000000).toFixed(1) + 'B';
+    } else if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toLocaleString();
+}
+
+function formatCurrency(amount) {
+    if (typeof amount !== 'number') return '₹0';
+    
+    const formatted = formatNumber(amount);
+    return `₹${formatted}`;
+}
+
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (realtimeInterval) {
+        clearInterval(realtimeInterval);
+    }
+});
+
+function openExportModal() {
+    const modal = document.getElementById('exportModal');
+    const modalBox = document.getElementById('draggableModal');
+
+    modal.style.display = 'flex';
+    // center modal initially
+    modalBox.style.left = 'calc(50% - 210px)';
+    modalBox.style.top = 'calc(50% - 200px)';
+
+    // reset select values if needed
+    document.getElementById('modalChannel').value = 'all';
+    document.getElementById('statusSection').style.display = 'none';
+    document.getElementById('paymentModeSection').style.display = 'none';
+}
+
+function closeExportModal() {
+    document.getElementById('exportModal').style.display = 'none';
+}
+
+(function() {
+    const modal = document.getElementById("draggableModal");
+    const header = document.getElementById("modalHeader");
+    let offsetX = 0, offsetY = 0, isDragging = false;
+
+    header.onmousedown = function(e) {
+        isDragging = true;
+        offsetX = e.clientX - modal.offsetLeft;
+        offsetY = e.clientY - modal.offsetTop;
+        document.onmousemove = function(e) {
+            if (isDragging) {
+                modal.style.left = e.clientX - offsetX + "px";
+                modal.style.top = e.clientY - offsetY + "px";
+            }
+        };
+        document.onmouseup = function() {
+            isDragging = false;
+            document.onmousemove = null;
+            document.onmouseup = null;
+        };
+    };
+})();
+
+function onChannelChange() {
+    const channel = document.getElementById('modalChannel').value;
+    const statusSection = document.getElementById('statusSection');
+    const paymentSection = document.getElementById('paymentModeSection');
+
+    if (channel === 'rnlic') {
+        statusSection.style.display = 'block';
+        document.getElementById('modalStatus').value = 'all';
+        onStatusChange(); // ✅ Manually trigger it
+    } else {
+        statusSection.style.display = 'none';
+        paymentSection.style.display = 'none';
+    }
+}
+
+
+function onStatusChange() {
+    const status = document.getElementById('modalStatus').value;
+    const paymentSection = document.getElementById('paymentModeSection');
+    
+    if (['all', 'success', 'failed', 'awaiting'].includes(status)) {
+        paymentSection.style.display = 'block';
+    } else {
+        paymentSection.style.display = 'none';
+    }
+}
+
+
+async function exportTransactionData() {
+    try {
+        const start = document.getElementById('modalStartDate').value;
+        const end = document.getElementById('modalEndDate').value;
+        const channel = document.getElementById('modalChannel').value;
+        const status = document.getElementById('modalStatus').value;
+        const paymentMode = document.getElementById('modalPaymentMode').value;
+
+        const baseURL = API_CONFIG.baseURL;
+        const headers = API_CONFIG.headers;
+
+        // Helper to download file
+        const downloadCSV = async (endpoint, paramsObj, fileLabel) => {
+            const params = new URLSearchParams({
+                ...paramsObj,
+                format: 'csv'
+            });
+
+            const response = await fetch(`${baseURL}${endpoint}?${params}`, {
+                method: 'GET',
+                headers
+            });
+
+            if (!response.ok) {
+                throw new Error(`Export failed for ${fileLabel}`);
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${fileLabel}_transaction_export_${paramsObj.startDate}_${paramsObj.endDate}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        };
+
+        if (channel === 'all') {
+            await downloadCSV(API_CONFIG.endpoints.exportRnlic, {
+                startDate: start,
+                endDate: end,
+                status,
+                paymentMode
+            }, 'rnlic');
+
+            await downloadCSV(API_CONFIG.endpoints.exportSuvidha, {
+                startDate: start,
+                endDate: end
+            }, 'suvidha');
+
+            await downloadCSV(API_CONFIG.endpoints.exportUpi, {
+                startDate: start,
+                endDate: end
+            }, 'upi');
+
+        } else if (channel === 'rnlic') {
+            await downloadCSV(API_CONFIG.endpoints.exportRnlic, {
+                startDate: start,
+                endDate: end,
+                status,
+                paymentMode
+            }, 'rnlic');
+
+        } else if (channel === 'suvidha') {
+            await downloadCSV(API_CONFIG.endpoints.exportSuvidha, {
+                startDate: start,
+                endDate: end
+            }, 'suvidha');
+
+        } else if (channel === 'upi') {
+            await downloadCSV(API_CONFIG.endpoints.exportUpi, {
+                startDate: start,
+                endDate: end
+            }, 'upi');
+        }
+
+        closeExportModal();
+        showSuccess('Transaction export successful');
+    } catch (error) {
+        console.error('Export error:', error);
+        showError('Failed to export transaction data');
+    }
+}
+
+</script>
+
+</body>
+</html>
